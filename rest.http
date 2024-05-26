@@ -1,0 +1,16 @@
+### get index
+
+GET http://localhost:8080/
+
+
+### generate short url
+POST http://localhost:8080/
+Content-Type: application/json
+
+{
+    "url": "https://www.baidu.com"
+}
+
+
+### redirect url
+GET http://localhost:8080/u2Mx8f
