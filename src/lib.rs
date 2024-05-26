@@ -1,4 +1,5 @@
 pub mod controller;
+pub mod error;
 pub mod model;
 
 use anyhow::Result;
@@ -20,8 +21,11 @@ impl AppState {
 
 pub async fn init_pg_pool() -> Result<PgPool> {
     let _ = dotenvy::dotenv();
-    let database_url = env::var("DATABASE_URL")?;
-    let pg_pool = PgPool::connect(&database_url).await?;
+    let database_url =
+        env::var("DATABASE_URL").expect("environment variable DATABASE_URL is missing.");
+    let pg_pool = PgPool::connect(&database_url)
+        .await
+        .expect("failed to connect to database.");
     Ok(pg_pool)
 }
 

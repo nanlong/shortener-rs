@@ -1,4 +1,4 @@
-use crate::{model, AppState};
+use crate::{error, model, AppState};
 use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
@@ -20,13 +20,14 @@ pub struct ShortenResp {
 pub async fn shorten(
     State(app_state): State<Arc<AppState>>,
     Json(data): Json<ShortenReq>,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> Result<impl IntoResponse, error::Error> {
     let id = model::url::insert_url(&app_state.pg_pool, data.url)
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|e| error::Error::InternalServerError(e.to_string()))?;
 
     let _ = dotenvy::dotenv();
-    let domain = env::var("DOMAIN").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let domain =
+        env::var("DOMAIN").map_err(|e| error::Error::InternalServerError(e.to_string()))?;
     let body = Json(ShortenResp {
         url: format!("{}/{}", domain, id),
     });
@@ -37,11 +38,11 @@ pub async fn shorten(
 pub async fn redirect(
     State(app_state): State<Arc<AppState>>,
     Path(id): Path<String>,
-) -> Result<impl IntoResponse, StatusCode> {
-    let url = model::url::get_url(&app_state.pg_pool, id)
+) -> Result<impl IntoResponse, error::Error> {
+    let url = model::url::get_url(&app_state.pg_pool, &id)
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .ok_or(StatusCode::NOT_FOUND)?;
+        .map_err(|e: anyhow::Error| error::Error::InternalServerError(e.to_string()))?
+        .ok_or(error::Error::ShortenUrlNotFound(id))?;
 
     Ok(Redirect::permanent(&url))
 }
